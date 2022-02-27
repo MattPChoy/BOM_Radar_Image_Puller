@@ -1,44 +1,31 @@
-import requests
-import shutil
-import urllib.request as req
-from contextlib import closing
+import os
+import time
+import datetime
+from ftplib import FTP
 
-sources = {
-    "QLD_Mt_Stapylton_128", "http://www.bom.gov.au/radar/IDR663.T.202202252249.png"
-}
+def get_brisbane_filenames(filename):
+    if filename.startswith("IDR663.T."):
+        brisbane_filenames.append(filename)
 
-def download_image(url):
-    img_data = requests.get(url).content
-    with open('image_name.png', 'wb') as handler:
-        handler.write(img_data)
+def ftp_download_image():
+    ftp = FTP(r"ftp.bom.gov.au")
+    ftp.login()
+    ftp.cwd("/anon/gen/radar")
 
-def download_image_2(url):
-    with open('image_name.png', 'wb') as handle:
-        response = requests.get(url, stream=True)
+    ftp.retrlines("NLST", get_brisbane_filenames)
 
-        if not response.ok:
-            print(response)
-
-        for block in response.iter_content(1024):
-            if not block:
-                break
-
-            handle.write(block)
-
-def download_image_3(url):
-    response = requests.get(url)
-    if not response.ok:
-        print(response)
-    file = open("image_name.png", "wb")
-    file.write(response.content)
-    file.close()
-
-def download_image_4(url):
-    # Downloading from an FTP stream
-    with closing(req.urlopen(url)) as r:
-        with open('image_name.png', 'wb') as f:
-            shutil.copyfileobj(r, f)
+    for filename in brisbane_filenames:
+        if not os.path.isfile(filename):
+            with open(filename, "wb") as fp:
+                ftp.retrbinary(f"RETR {filename}", fp.write)
+                print(f"Downloaded and saved {filename}")
+    ftp.quit
 
 if __name__ == "__main__":
     # download_image_3("http://www.bom.gov.au/radar/IDR663.T.202202252249.png")
-    download_image_4('ftp://ftp.bom.gov.au/anon/gen/radar/')
+    while 1:
+        brisbane_filenames = []
+        ftp_download_image()
+        print(f"Downloading images complete at {datetime.datetime.now()}")
+        time.sleep(1800) # 30 mins
+        # time.sleep(30)
